@@ -15,11 +15,10 @@
 
 #define BUFFSIZE 255
 #define BROADCAST_DELAY 2
-#define RTT_REQUEST_COUNT 255
 #define OFFSET_REQUEST_COUNT 200
 #define REQUEST_TIMEOUT 65000
 #define	SKEW_COUNT 10
-#define DELAY 5
+#define DELAY 10
 
 enum bool{
     FALSE,
@@ -80,7 +79,8 @@ struct SkewData{
 struct data_entry{
     struct data_t   *head;
     struct data_t   *tail;
-    uint32_t        time;
+    uint64_t        time;
+    uint16_t        count;
 };
 
 struct data_t{
@@ -120,40 +120,17 @@ void *thrd_func_correct_time();
 
 
 
-uint16_t getRTT(struct slave_t *__slave);
-void getRTTInterval(struct slave_t *__slave, uint16_t __count);
+void getRTTInterval(struct slave_t *__slave, struct data_entry *__entry);
 int32_t getmsdiff(suseconds_t *__usec1, suseconds_t *__usec2);
-struct rtt_chain *addNewRttToChain(struct rtt_chain *__rtt, uint16_t __value);
-void printChain(struct rtt_chain *__rrt);
-void deleteRttChain(struct rtt_chain *__rtt);
-int8_t getOffsetOfServer(struct slave_t *__slave, uint64_t *__sec, struct timeval *__offset);
+uint32_t calcOffset(struct slave_t *__slave, struct data_entry *__entry);
 struct data_entry *collectData();
 
 int32_t calculateMedia(struct slave_t *__slave);
 int32_t calculateAlhaLR(struct slave_t *__slave);
-//int32_t calculateAlhaLR1(struct slave_t *__slave);
-//int32_t calculateAlhaLR2(struct slave_t *__slave);
-//float calculateSkewLR2(struct SkewData *__skew);
 float calculateSkewLR(struct SkewData *__skew);
 struct SkewData *addNewNode(struct SkewData *__current, uint64_t *__sec, struct timeval *__offset);
 struct SkewData *deleteFirstNode(struct SkewData *__head);
 void freeSkewData(struct SkewData *__head);
 int32_t calculateLastEstimateOffset(struct SkewData *__head, struct SkewData *__tail, int32_t __alpha, float __beta);
-    /*
-#include <sys/stat.h>
-#include <signal.h>
-#include <errno.h>
-#include <sys/un.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <sys/select.h>
-#include <stddef.h>
 
-
-#define CLOCK_SYNC_COUNT 10
-
-void timer(struct timeval *__time);
-void changeTime(struct timeval *__time, int32_t sec, int32_t usec);
-float getSkewLRDelta(struct Coluns *__colun, float *__skew);
-*/
 

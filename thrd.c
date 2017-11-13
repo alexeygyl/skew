@@ -35,55 +35,26 @@ void *thrd_func_correct_time(){
 
 
 void *thrd_func_offset(void *__slave){
-	struct slave_t	*slave  = (struct slave_t *)__slave;
-	uint16_t		RTTcount;	
-	int8_t			success_count = 0, bestResult, offsetDir, running = 1, offset_fails,res;
-	uint8_t			skew_position = 0;
-	uint32_t		total_rtt = 0;
-	uint64_t		sec;
-	float			clockSkew, skewTMP;
+	struct slave_t	    *slave  = (struct slave_t *)__slave;
+	uint16_t		    RTTcount;	
+	int8_t			    success_count = 0, bestResult, offsetDir, running = 1, offset_fails,res;
+	uint8_t			    skew_position = 0;
+	uint32_t		    total_rtt = 0;
+	uint64_t		    sec;
+	float			    clockSkew, skewTMP;
 	struct timeval		skew_clock, currTime;
 	struct SkewData		*currentNode = NULL;
-    struct timeval tstamp;
-    uint8_t         est = 0;
+    struct timeval      tstamp;
+    uint8_t             est = 0;
     struct data_entry   *entry;
     struct data_t       *curr;
-    //------------------Get delays Range---------------------------------------------------
-         /*
-rtt_start:;
-
-    slave->minRTT = 0;
-    slave->maxRTT = REQUEST_TIMEOUT;
-    offset_fails=0;
-    if((RTTcount = getRTT(slave)) == 0) {
-		printf("RTT get error\n");
-	}
-    exit(0);
-    getRTTInterval(slave, RTTcount);
-    printf("Range  %d-%d\n",slave->minRTT,slave->maxRTT);
-	printf("--------------------------------------------------\n"); 
-    deleteRttChain(slave->rtt);
-    goto rtt_start;
-    */
-    //--------------------------------------------------------------------------------	
-	correctSkew = 14.5;
+    //------------------Get offset and skew---------------------------------------------------
+	correctSkew = 0.0;
     while(1){
+        slave->minRTT = 0;
+        slave->maxRTT = REQUEST_TIMEOUT;
         
-        entry = collectData(slave);
-        getRTTInterval(slave, RTTcount);
-        printf("Range  %d-%d\n",slave->minRTT,slave->maxRTT);
-
-        while(entry->head){
-            curr = entry->head;
-            entry->head = entry->head->next;
-            free(curr);
-        }
-        printf("TIME %d\n",entry->time);
-        free(entry);
-        
-        
-        /* Fixing  time */
-        /*
+        /* Fixing  time ############################################################################################*/
         gettimeofday(&tstamp,NULL);
         tstamp.tv_usec -=  (int)(correctSkew*DELAY);
         //printf("TO fix %d\n",(int)(correctSkew*DELAY));
@@ -96,27 +67,24 @@ rtt_start:;
             tstamp.tv_usec +=1000000;
         }
         settimeofday(&tstamp,NULL);
-
-		if((res = getOffsetOfServer(slave,&sec,&skew_clock)) <=0){
-            printf("OCCUREd ERROR WHILE DETECTING OFFSET\n");
-            offset_fails++;
-            //if(offset_fails>10)goto rtt_start;
-            goto todelay;
-        }
-
+        /*########################################################################################################*/
+        entry = collectData(slave);
+        getRTTInterval(slave, entry);
+        //printf("Range  %d-%d\n",slave->minRTT,slave->maxRTT);
+        skew_clock.tv_usec = calcOffset(slave, entry); 
+        
         if(slave->skew != NULL){
-			currentNode = addNewNode(currentNode,&sec,&skew_clock );
+			currentNode = addNewNode(currentNode,&entry->time,&skew_clock );
             slave->actualSkew = calculateSkewLR(slave->skew);
 			//printf("SkewLR %.3f\n", slave->actualSkew);
 			success_count++;
 		}
 		else{
-			slave->skew = addNewNode(slave->skew,&sec, &skew_clock);
+			slave->skew = addNewNode(slave->skew,&entry->time, &skew_clock);
 			currentNode = slave->skew;
 			success_count++;
 		}
-        if(success_count == SKEW_COUNT){
-            
+        if(success_count == SKEW_COUNT){    
             if(est == 0){
                 if(slave->actualSkew > 0.1 || slave->actualSkew< -0.1){
 			        correctSkew+=slave->actualSkew;
@@ -132,11 +100,16 @@ rtt_start:;
                 currentNode = slave->skew;
                 slave->skew = slave->skew->next;
                 free(currentNode);
-            }
-            
+            }            
             success_count = 0 ;
 		}
-        */
+
+        while(entry->head){
+            curr = entry->head;
+            entry->head = entry->head->next;
+            free(curr);
+        }
+        free(entry);
         sleep(DELAY);
 	}
 
