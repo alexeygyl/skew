@@ -16,10 +16,10 @@
 #define BUFFSIZE 255
 #define BROADCAST_DELAY 2
 #define RTT_REQUEST_COUNT 255
-#define OFFSET_REQUEST_COUNT 100
+#define OFFSET_REQUEST_COUNT 200
 #define REQUEST_TIMEOUT 65000
-#define	SKEW_COUNT 50
-#define DELAY 10
+#define	SKEW_COUNT 10
+#define DELAY 5
 
 enum bool{
     FALSE,
@@ -77,17 +77,29 @@ struct SkewData{
 	struct SkewData	*next;
 };
 
+struct data_entry{
+    struct data_t   *head;
+    struct data_t   *tail;
+    uint32_t        time;
+};
+
+struct data_t{
+    uint16_t        rtt;
+    uint32_t        offset;
+    struct data_t   *next;
+};
+
 
 
 #pragma pack (pop)
-
+float               correctSkew;
 int32_t             sock;
 uint32_t            source_len;
 uint8_t			    bytes_r, isMasterDiscovered;
 struct sockaddr_in	source,broadcastServerDiscover, master;
 
 unsigned char       rxbuff[BUFFSIZE],txbuff[BUFFSIZE];
-pthread_t           thrd_server_discover, thrd_offset;
+pthread_t           thrd_server_discover, thrd_offset, thrd_correct_time;
 
 /* This function reads arguments from command line */
 void readAttr(int _argc, char ** _argv);
@@ -104,6 +116,7 @@ void initBroadcastMessage(int *__sock);
 /*Thread's functions*/
 void *thrd_func_server_discover();
 void *thrd_func_offset(void *__slave);
+void *thrd_func_correct_time();
 
 
 
@@ -114,12 +127,19 @@ struct rtt_chain *addNewRttToChain(struct rtt_chain *__rtt, uint16_t __value);
 void printChain(struct rtt_chain *__rrt);
 void deleteRttChain(struct rtt_chain *__rtt);
 int8_t getOffsetOfServer(struct slave_t *__slave, uint64_t *__sec, struct timeval *__offset);
+struct data_entry *collectData();
 
+int32_t calculateMedia(struct slave_t *__slave);
+int32_t calculateAlhaLR(struct slave_t *__slave);
+//int32_t calculateAlhaLR1(struct slave_t *__slave);
+//int32_t calculateAlhaLR2(struct slave_t *__slave);
+//float calculateSkewLR2(struct SkewData *__skew);
 float calculateSkewLR(struct SkewData *__skew);
 struct SkewData *addNewNode(struct SkewData *__current, uint64_t *__sec, struct timeval *__offset);
 struct SkewData *deleteFirstNode(struct SkewData *__head);
-
-/*
+void freeSkewData(struct SkewData *__head);
+int32_t calculateLastEstimateOffset(struct SkewData *__head, struct SkewData *__tail, int32_t __alpha, float __beta);
+    /*
 #include <sys/stat.h>
 #include <signal.h>
 #include <errno.h>
