@@ -258,6 +258,22 @@ struct SkewData *deleteFirstNode(struct SkewData *__head){
 }
 
 
+void fixTime(){
+    struct timeval tstamp;
+    gettimeofday(&tstamp,NULL);
+    tstamp.tv_usec -=  (int)(correctSkew*DELAY);
+    if((int)tstamp.tv_usec >= 1000000){
+        tstamp.tv_sec++;
+        tstamp.tv_usec -=1000000;
+    }
+    else if((int)tstamp.tv_usec < 0){
+        tstamp.tv_sec--;
+        tstamp.tv_usec +=1000000;
+    }
+    settimeofday(&tstamp,NULL);
+}
+
+
 //###########################################################################################################################
 /*
 void timer(struct timeval *__time){

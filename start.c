@@ -39,7 +39,6 @@ void startClient(){
     //pthread_create(&thrd_correct_time,NULL,&thrd_func_correct_time,NULL);
     source_len = sizeof(source);
     struct slave_t  slave;
-    slave.rtt = NULL;
     slave.skew = NULL;
     slave.actualSkew = 0;
 	correctSkew = 0.0;

@@ -55,10 +55,6 @@ struct request_t{
 	struct	timeval	time;
 };
 
-struct rtt_chain{
-	uint16_t	        value;
-	struct rtt_chain	*next;
-};
 
 struct slave_t{
 	struct request_t    packet;
@@ -67,7 +63,6 @@ struct slave_t{
 	uint16_t		    minRTT;
 	float			    actualSkew;
 	struct SkewData		*skew;
-	struct 	rtt_chain	*rtt;
 };
 
 struct SkewData{
