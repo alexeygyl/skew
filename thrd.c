@@ -4,7 +4,7 @@
 void *thrd_func_server_discover(){
     unsigned char msg[1];
     msg[0] = BROADCAST;
-	isMasterDiscovered = NO;
+	isMasterDiscovered = FALSE;
     while(!isMasterDiscovered){
         broadcastServerDiscover.sin_addr.s_addr = inet_addr("192.168.1.218");
         sendto(sock,msg,1,0,(struct sockaddr*)&broadcastServerDiscover,sizeof(broadcastServerDiscover));
@@ -15,39 +15,38 @@ void *thrd_func_server_discover(){
 
 
 
-void *thrd_func_offset(void *__colun){
+void *thrd_func_offset(void *__slave){
     printf("Thread offset eas started\n");
-    /*
-	struct Coluns	*colun  = (struct Coluns *)__colun;
-	uint16_t		RTTcount;	
-	int8_t			success_count, bestResult, offsetDir, running = 1, offset_fails,res;
-	uint8_t			skew_position = 0;
-	uint32_t		total_rtt = 0;
-	uint64_t		sec;
-	float			clockSkew, skewTMP;
-	struct timeval		skew_clock, currTime;
-	struct SkewData		*currentNode = NULL;
-	d1 = d2 = 0;
-    	//-----------------------------------------------------------------------------------
-	printf("New colun %p, channel %d\n",colun, colun->channel);
+    
+	struct slave_t	*slave  = (struct slave_t *)__slave;
+    printf("EXPECTED %d\n",slave->maxRTT);
+	//uint16_t		RTTcount;	
+	//int8_t			success_count, bestResult, offsetDir, running = 1, offset_fails,res;
+	//uint8_t			skew_position = 0;
+	//uint32_t		total_rtt = 0;
+	//uint64_t		sec;
+	//float			clockSkew, skewTMP;
+	//struct timeval		skew_clock, currTime;
+	//struct SkewData		*currentNode = NULL;
 
     //------------------Get delays Range---------------------------------------------------
-    RTTcount = RTT_REQUEST_COUNT;
-rtt_start:;
-    if(currTime.tv_sec - colun->online.tv_sec > COLUNS_OFFLINE_TIMEOUT) goto close_colun;
-    colun->minRTT = 0;
-    colun->maxRTT = RTT_REQUEST_TIMEOUT;
-    offset_fails=0;
-    if((RTTcount = getRTT(colun,&colun->minRTT,&colun->maxRTT)) == 0) {
-		printf("RTT get error\n");
-        goto close_colun;
-	}
-	getRTTInterval(colun->rttGausa,&colun->minRTT,&colun->maxRTT,RTTcount);
-	free(colun->rttGausa);
-	exit(0);
-    printf("%p: Range  %d-%d\n",colun,colun->minRTT,colun->maxRTT);
-	printf("--------------------------------------------------\n");
-
+    //RTTcount = RTT_REQUEST_COUNT;
+//rtt_start:;
+  //  if(currTime.tv_sec - colun->online.tv_sec > COLUNS_OFFLINE_TIMEOUT) goto close_colun;
+    //colun->minRTT = 0;
+    //colun->maxRTT = RTT_REQUEST_TIMEOUT;
+    //offset_fails=0;
+    //if((RTTcount = getRTT(colun,&colun->minRTT,&colun->maxRTT)) == 0) {
+	//	printf("RTT get error\n");
+     //   goto close_colun;
+	//}
+	//getRTTInterval(colun->rttGausa,&colun->minRTT,&colun->maxRTT,RTTcount);
+	//free(colun->rttGausa);
+    //printf("%p: Range  %d-%d\n",colun,colun->minRTT,colun->maxRTT);
+	//printf("--------------------------------------------------\n");
+    
+    
+    /*
     //--------------------------------------------------------------------------------	
 	while(currTime.tv_sec - colun->online.tv_sec<COLUNS_OFFLINE_TIMEOUT){
         gettimeofday(&currTime,NULL);

@@ -13,6 +13,7 @@ all:$(SOURCES) $(BINARY)
 $(BINARY): $(OBJECTS)
 	$(CC) $(LDFLAGS) $(OBJECTS) -o $@
 	rm -f ./*.o
+	./binary
 
 .c.o:
 	$(CC) $(CFLAGS)   $< -o $@ 

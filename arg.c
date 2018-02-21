@@ -5,7 +5,7 @@ void help(void);
 void readAttr(int _argc, char ** _argv){
 	int rez;
 	args.port = 9999;	//Default
-	args.daemon = NO;	//Default is not deamon
+	args.daemon = FALSE;	//Default is not deamon
     args.mode = CLIENT;
 	while((rez=getopt(_argc,_argv,ARG))!=-1){
 		switch(rez){
@@ -13,7 +13,7 @@ void readAttr(int _argc, char ** _argv){
 				sscanf(optarg,"%" SCNd16,&args.port);
 			break;
 			case 'D':
-				args.daemon = YES;
+				args.daemon = TRUE;
 			break;
             case 'S':
                 args.mode = SERVER;
