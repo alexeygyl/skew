@@ -16,61 +16,40 @@ void *thrd_func_server_discover(){
 
 
 void *thrd_func_offset(void *__slave){
-    printf("Thread offset eas started\n");
+    printf("Thread offset was started\n");
     
 	struct slave_t	*slave  = (struct slave_t *)__slave;
-    printf("EXPECTED %d\n",slave->maxRTT);
-	//uint16_t		RTTcount;	
-	//int8_t			success_count, bestResult, offsetDir, running = 1, offset_fails,res;
-	//uint8_t			skew_position = 0;
-	//uint32_t		total_rtt = 0;
-	//uint64_t		sec;
-	//float			clockSkew, skewTMP;
-	//struct timeval		skew_clock, currTime;
-	//struct SkewData		*currentNode = NULL;
+	uint16_t		RTTcount;	
+	int8_t			success_count, bestResult, offsetDir, running = 1, offset_fails,res;
+	uint8_t			skew_position = 0;
+	uint32_t		total_rtt = 0;
+	uint64_t		sec;
+	float			clockSkew, skewTMP;
+	struct timeval		skew_clock, currTime;
+	struct SkewData		*currentNode = NULL;
 
     //------------------Get delays Range---------------------------------------------------
-    //RTTcount = RTT_REQUEST_COUNT;
-//rtt_start:;
-  //  if(currTime.tv_sec - colun->online.tv_sec > COLUNS_OFFLINE_TIMEOUT) goto close_colun;
-    //colun->minRTT = 0;
-    //colun->maxRTT = RTT_REQUEST_TIMEOUT;
-    //offset_fails=0;
-    //if((RTTcount = getRTT(colun,&colun->minRTT,&colun->maxRTT)) == 0) {
-	//	printf("RTT get error\n");
-     //   goto close_colun;
-	//}
-	//getRTTInterval(colun->rttGausa,&colun->minRTT,&colun->maxRTT,RTTcount);
-	//free(colun->rttGausa);
-    //printf("%p: Range  %d-%d\n",colun,colun->minRTT,colun->maxRTT);
-	//printf("--------------------------------------------------\n");
-    
-    
-    /*
+rtt_start:;
+    slave->minRTT = 0;
+    slave->maxRTT = REQUEST_TIMEOUT;
+    offset_fails=0;
+    if((RTTcount = getRTT(slave)) == 0) {
+		printf("RTT get error\n");
+	}
+    getRTTInterval(slave, RTTcount);
+    printf("Range  %d-%d\n",slave->minRTT,slave->maxRTT);
+	printf("--------------------------------------------------\n"); 
+    deleteRttChain(slave->rtt);
     //--------------------------------------------------------------------------------	
-	while(currTime.tv_sec - colun->online.tv_sec<COLUNS_OFFLINE_TIMEOUT){
+	while(1){
         gettimeofday(&currTime,NULL);
-        if(currTime.tv_sec-colun->online.tv_sec>COLUNS_STOP_SERVICE_TIMEOUT){
-            printf("Colun '%p' don't responce...\n", colun);
-            sleep(1);
+		if((res = getOffsetOfServer(slave,&sec,&skew_clock)) <=0){
+            if(offset_fails>10)goto rtt_start;
+            offset_fails++;
             continue;
         }
-		if(colun->status == STATUS_NONE  || colun->status == STATUS_OFFSET){
-            colun->status = STATUS_OFFSET;
-			if((res = getOffsetFromColun(colun,&sec,&skew_clock)) == -1){
-                if(offset_fails>10)goto rtt_start;
-                offset_fails++;
-                continue;
-            }else if(res == -2){
-                continue;
-            }
-		}
-		else {
-            usleep(100000);
-			continue;
-		}
         
-		
+	/*	
         colun->status = STATUS_NONE;
         if(colun->skew != NULL){
 			if(success_count == SKEW_COUNT){
@@ -92,28 +71,10 @@ void *thrd_func_offset(void *__slave){
 			currentNode = colun->skew;
 			success_count++;
 		}
-    if(currTime.tv_sec-colun->online.tv_sec<COLUNS_STOP_SERVICE_TIMEOUT)sleep(DELAY);
+        */
     gettimeofday(&currTime,NULL);
+    sleep(DELAY);
 	}
-close_colun:;
-    if(colun->pref != NULL){
-        colun->pref->next = colun->next;
-    }else{ 
-        //printf("New head %p\n",colun->next);
-        colunsHead = colun->next;
-    }
-    if(colun->next !=NULL){
-        colun->next->pref = colun->pref;
-    }else {
-        //printf("New last %p\n",colun->pref);
-        colunsLast = colun->pref;
-    }
-    memset(colun,'\0',sizeof(struct Coluns));
-    free(colun);
-    //printTree(colunsHead);
-    colunsCount--;
-    printf("Colun '%p' is offline, close thread and realise all resoureces...\n",colun);
-*/
 
 }
 

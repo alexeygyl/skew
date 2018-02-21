@@ -1,7 +1,7 @@
 CC=gcc
 CFLAGS=-c  
 LDFLAGS=-g -Wall -lm -lpthread
-SOURCES = deamon.c arg.c start.c socket.c thrd.c
+SOURCES = deamon.c arg.c start.c socket.c thrd.c funcs.c
 OBJECTS = $(SOURCES:.c=.o)
 BINARY = binary
 

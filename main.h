@@ -10,12 +10,16 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <math.h>
 
 
 #define BUFFSIZE 255
 #define BROADCAST_DELAY 2
 #define RTT_REQUEST_COUNT 255
+#define OFFSET_REQUEST_COUNT 100
 #define REQUEST_TIMEOUT 65000
+#define	SKEW_COUNT 50
+#define DELAY 10
 
 enum bool{
     FALSE,
@@ -52,6 +56,10 @@ struct request_t{
 	struct	timeval	time;
 };
 
+struct rtt_chain{
+	uint16_t	        value;
+	struct rtt_chain	*next;
+};
 
 struct slave_t{
 	struct request_t    packet;
@@ -59,10 +67,15 @@ struct slave_t{
 	uint16_t		    maxRTT;
 	uint16_t		    minRTT;
 	float			    actualSkew;
-	//struct SkewData		*skew;
-	//struct RTTGausa		*rttGausa;
+	struct SkewData		*skew;
+	struct 	rtt_chain	*rtt;
 };
 
+struct SkewData{
+	uint64_t	sec_master;
+	struct timeval	offset;
+	struct SkewData	*next;
+};
 
 
 
@@ -94,15 +107,19 @@ void *thrd_func_offset(void *__slave);
 
 
 
-uint16_t getRTT(struct slave_t *__slave, uint16_t *__min, uint16_t *__max);
-
+uint16_t getRTT(struct slave_t *__slave);
+void getRTTInterval(struct slave_t *__slave, uint16_t __count);
+int32_t getmsdiff(suseconds_t *__usec1, suseconds_t *__usec2);
+struct rtt_chain *addNewRttToChain(struct rtt_chain *__rtt, uint16_t __value);
+void printChain(struct rtt_chain *__rrt);
+void deleteRttChain(struct rtt_chain *__rtt);
+int8_t getOffsetOfServer(struct slave_t *__slave, uint64_t *__sec, struct timeval *__offset);
 
 
 /*
 #include <sys/stat.h>
 #include <signal.h>
 #include <errno.h>
-#include <math.h>
 #include <sys/un.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
@@ -110,43 +127,13 @@ uint16_t getRTT(struct slave_t *__slave, uint16_t *__min, uint16_t *__max);
 #include <stddef.h>
 
 
-
-#define	BUFFSIZE_U 100
-
-
-#define RESEND_PACKET_DELAY 200000
-#define COLUNSIZE 8
-#define START_SYNC 0xff
-#define OFFSET_REQUEST_COUNT 100
-#define	SKEW_COUNT 50
-#define OFFSET_REQUEST_TIMEOUT 65000
-#define DELAY 10
-#define MAX_RTT 10000
 #define CLOCK_SYNC_COUNT 10
-
-
-
-
-struct SkewData{
-	uint64_t	sec_master;
-	struct timeval	offset;
-	struct SkewData	*next;
-};
-
-struct RTTGausa{
-	uint16_t	rtt;
-	struct RTTGausa	*next;
-};
-
-
-
 
 
 
 
 
 //---------------------------FUNCTIONS--------------------------------------------------
-int32_t getmsdiff(suseconds_t *__usec1, suseconds_t *__usec2);
 void timer(struct timeval *__time);
 void changeTime(struct timeval *__time, int32_t sec, int32_t usec);
 
@@ -157,18 +144,7 @@ float getSkewLRDelta(struct Coluns *__colun, float *__skew);
 void printSkewMead(struct SkewData *__skew);
 float calculateSkewTime(struct SkewData *__skew);
 float calculateSkewLR(struct SkewData *__skew);
-int8_t getOffsetFromColun(struct Coluns *__colun, uint64_t *__sec, struct timeval *__offset);
 struct SkewData *addNewNode(struct SkewData *__current, uint64_t *__sec, struct timeval *__offset);
 struct SkewData *deleteFirstNode(struct SkewData *__head);
-
-//--------------------INTERVAL FUNCTIONS-----------------------------------------------
-struct RTTGausa *addNewNodeRTTGausa(struct RTTGausa *__current, uint16_t __rtt);
-uint16_t RTT_MMM(struct RTTGausa *__head, uint16_t __min, uint16_t __max);
-uint32_t rttGausaAverage(struct RTTGausa *__head, uint16_t __min, uint16_t __max, uint8_t __status);
-uint32_t rttGausaDesvision(struct RTTGausa *__head, uint32_t __avr, uint16_t __min, uint16_t __max, uint8_t __status);
-void rttGausaEleminateTree(struct RTTGausa *__head);
-void getRTTInterval(struct RTTGausa *__head, uint16_t *__min, uint16_t *__max, uint16_t __count);
-
 */
-
 

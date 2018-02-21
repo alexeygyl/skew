@@ -11,34 +11,35 @@ int32_t getmsdiff(suseconds_t *__usec1, suseconds_t *__usec2){
 
 
 //###########################################################################################################################
-uint16_t getRTT(struct slave_t *__slave, uint16_t *__min, uint16_t *__max){
+uint16_t getRTT(struct slave_t *__slave){
     uint32_t		i;
-	struct timeval	tp1,tp2;
+	struct timeval	start,end;
 	uint16_t		rtt,count = 0;
 	uint16_t		pos, res[1000], max=0;
     int16_t         y;
-	//struct RTTGausa		*currentNode = NULL;
+    txbuff[0] = RTT_REQ;
+	struct rtt_chain	*currRtt = NULL;
 	memset(&res,'\0',1000*2);
 	for(i = 1; i <= RTT_REQUEST_COUNT; i++){
-		memcpy(&rttRequest[1],&i,4);
-		gettimeofday(&tp1,NULL);
-		sendto(sock,rttRequest,5,0, (struct sockaddr*)&master, sizeof(master));
+		memcpy(&txbuff[1],&i,4);
+		gettimeofday(&start,NULL);
+		sendto(sock,txbuff,5,0, (struct sockaddr*)&master, sizeof(master));
         __slave->expected_p = i;
 		__slave->packet.received = FALSE;
-		gettimeofday(&tp2,NULL);
-		while(getmsdiff(&tp1.tv_usec,&tp2.tv_usec) < REQUEST_TIMEOUT){
-			if(__colun->packet.received == TRUE){
-				__colun->packet.received = FALSE;
-				if(i == __colun->packet.seq){
-					rtt =  getmsdiff(&tp1.tv_usec,&tp2.tv_usec);
+		gettimeofday(&end,NULL);
+		while(getmsdiff(&start.tv_usec,&end.tv_usec) < REQUEST_TIMEOUT){
+			if(__slave->packet.received == TRUE){
+				__slave->packet.received = FALSE;
+				if(i == __slave->packet.seq){
+					rtt =  getmsdiff(&start.tv_usec,&end.tv_usec);
 					count++;
-                	printf("%d:\tRTT %d: Time 1 %d.%d, Time 2 %d.%d\n",i,rtt, tp1.tv_sec,tp1.tv_usec,tp2.tv_sec,tp2.tv_usec);
+                	//printf("%d:\tRTT %d: Time 1 %d.%d, Time 2 %d.%d\n",i,rtt, start.tv_sec,start.tv_usec,end.tv_sec,end.tv_usec);
 					
-                    //if(__colun->rttGausa !=NULL)currentNode = addNewNodeRTTGausa(currentNode,rtt);
-					//else{	
-					//       	__colun->rttGausa = addNewNodeRTTGausa(__colun->rttGausa,rtt);
-					//	currentNode = __colun->rttGausa;
-					//}
+                    if(__slave->rtt !=NULL)currRtt = addNewRttToChain(currRtt,rtt);
+					else{
+					    __slave->rtt = addNewRttToChain(NULL,rtt);
+						currRtt = __slave->rtt;
+					}
 
 					pos = rtt/100;
 					if(pos<1000)res[pos]++;
@@ -46,133 +47,130 @@ uint16_t getRTT(struct slave_t *__slave, uint16_t *__min, uint16_t *__max){
                 }
 
 			}
-			gettimeofday(&tp2,NULL);
+			gettimeofday(&end,NULL);
 		}
         
 	}
     if(count == 0 )return 0;
-//    for(y = 0; y < 1000; y++)if(res[y]!=0)printf("%d-%d\t%d\n",y*100,y*100+99,res[y]);	    
+    //for(y = 0; y < 1000; y++)if(res[y]!=0)printf("%d-%d\t%d\n",y*100,y*100+99,res[y]);	    
 
-    /*
-    for(y = 0; y < 1000; y++)
-        if(res[y]!=0){
-            printf("%d" ,y*100);	    
-            break;
-        }
-    for(y = 999; y >=0; y--)
-        if(res[y]!=0){
-            printf("-%d\n", y*100+99);	    
-            break;
-        }
-
-    */
     for(y = 0; y < 1000; y++){
 		if(res[y]*100/count >=5){
-			*__min = y*100;
+			__slave->minRTT = y*100;
 			break;
 		}
 	}
 	for(y = 999; y >=0; y--){
         if(res[y]*100/count >=5){
-			*__max = y*100+99;
+			__slave->maxRTT = y*100+99;
 			break;
 		}
 	}
 	return count;
 
 }
-/*
+
 //###########################################################################################################################
 //---------------------------------------------------------------------------------------------------------------------------------------
-struct RTTGausa *addNewNodeRTTGausa(struct RTTGausa *__current, uint16_t __rtt){
-	struct RTTGausa *newNode = (struct RTTGausa *)malloc(sizeof(struct RTTGausa));
-	newNode->rtt = __rtt;
+struct rtt_chain *addNewRttToChain(struct rtt_chain *__rtt, uint16_t __value){
+	struct rtt_chain *newNode = (struct rtt_chain *)malloc(sizeof(struct rtt_chain));
+	newNode->value = __value;
 	newNode->next = NULL;
-	if(__current !=NULL){
-		__current->next = newNode;
+	if(__rtt !=NULL){
+		__rtt->next = newNode;
 		return newNode;
 	}
 	else return newNode;
 }
 
+void printChain(struct rtt_chain *__rtt){
+    while(__rtt){
+        printf("RTT = %d\n",__rtt->value);
+        __rtt = __rtt->next;
+    }
+}
+
+void deleteRttChain(struct rtt_chain *__rtt){
+    if(__rtt){
+        deleteRttChain(__rtt->next);
+        free(__rtt);
+        __rtt = NULL;
+    }
+}
+
+
 //###########################################################################################################################
-uint16_t RTT_MMM(struct RTTGausa *__head, uint16_t __min, uint16_t __max){
-	static uint32_t	total = 0, max = 0, min = RTT_REQUEST_TIMEOUT, count = 0;
+uint16_t RTT_MMM(struct slave_t *__slave){
+	uint32_t	total = 0, max = 0, min = REQUEST_TIMEOUT, count = 0;
 	uint16_t	out;
-	while(__head !=NULL){
-		if(__head->rtt > __min && __head->rtt < __max){
-			max = max > __head->rtt?max:__head->rtt;
-			min = min < __head->rtt?min:__head->rtt;
-			total += __head->rtt;
+    struct rtt_chain *currRtt = __slave->rtt;
+	while(currRtt){
+		if(currRtt->value > __slave->minRTT && currRtt->value < __slave->maxRTT){
+			max = max > currRtt->value?max:currRtt->value;
+			min = min < currRtt->value?min:currRtt->value;
+			total += currRtt->value;
 			count ++;
 		}
-		return RTT_MMM(__head->next, __min, __max);
+        currRtt = currRtt->next;
 	}
-	out = count;
-    
-	//printf("Mead = %d/%d = %d, Range = %d-%d \n",total,count, total/count, __min, __max);
-	total = 0;
-	max = 0;
-	min = RTT_REQUEST_TIMEOUT;
-	count = 0;
+	out = count; 
 	return out;
 }
 
 //###########################################################################################################################
 //---------------------------------------------------------------------------------------------------------------------------------------
-uint32_t rttGausaAverage(struct RTTGausa *__head, uint16_t __min, uint16_t __max, uint8_t __status){
-    static uint32_t	total,count;
-	if(__status == 0 ){
-		total = 0;
-		count = 0;
-	}
-	while(__head != NULL){	
-		if(__head->rtt>__min && __head->rtt < __max){
-			total += __head->rtt;
-			count ++;
+uint32_t rttAverage(struct slave_t *__slave){
+    uint32_t	total,count;
+	struct rtt_chain *currRtt = __slave->rtt;
+    total = 0;
+	count = 0;
+    while(currRtt){	
+		if(currRtt->value>__slave->minRTT && currRtt->value < __slave->maxRTT){
+			total += currRtt->value;
+            count++;
 		}
-		return rttGausaAverage(__head->next, __min, __max, 1);
+	    currRtt = currRtt->next;
 	}
 	return total/count;
 }
 //###########################################################################################################################
 //---------------------------------------------------------------------------------------------------------------------------------------
-uint32_t rttGausaDesvision(struct RTTGausa *__head, uint32_t __avr, uint16_t __min, uint16_t __max, uint8_t __status){
-    static double	total, count;
-	if(__status == 0 ){
-		total = 0;
-		count = 0;
-	}
-	while(__head != NULL){
-		if(__head->rtt > __min && __head->rtt < __max){
-			total += (__head->rtt - __avr)*(__head->rtt - __avr);
+uint32_t rttDesvision(struct slave_t *__slave, uint32_t __avr){
+    double	total, count;
+	total = 0;
+	count = 0;
+	struct rtt_chain *currRtt = __slave->rtt;
+    while(currRtt != NULL){
+		if(currRtt->value > __slave->minRTT && currRtt->value < __slave->maxRTT){
+			total += (currRtt->value - __avr)*(currRtt->value - __avr);
 			count ++;
 		}
-		return rttGausaDesvision(__head->next, __avr, __min, __max,1);
+        currRtt = currRtt->next;
 	}
 	return (uint32_t)sqrt(total/count);
 }
 
 //###########################################################################################################################
-void getRTTInterval(struct RTTGausa *__head, uint16_t *__min, uint16_t *__max, uint16_t __count){
+void getRTTInterval(struct slave_t *__slave, uint16_t __count){
     int i;
-	uint32_t	rttAverage, rttDesvision;
+	uint32_t	average, desvision;
 	uint16_t	currRTTcount;
 	for(i = 0; i < 10;i++){
-		rttAverage = rttGausaAverage(__head, *__min, *__max,0);
-		rttDesvision = rttGausaDesvision(__head,rttAverage ,*__min, *__max,0);
+		average = rttAverage(__slave);
+		desvision = rttDesvision(__slave,average );
         
-        if(rttAverage <=rttDesvision*1.5)*__min=0;
-        else *__min = rttAverage - rttDesvision*1.5;
-        *__max = rttAverage + rttDesvision*1.5;
-        currRTTcount = RTT_MMM(__head, *__min, *__max);
-	    //printf("RANGE: %d-%d, %d%\n",*__min,*__max,currRTTcount*100/__count);	
+        __slave->minRTT = average <=desvision*1.5? 0 : average - desvision*1.5;
+        __slave->maxRTT = average + desvision*1.5;
+        
+        currRTTcount = RTT_MMM(__slave);
+	    //printf("RANGE: %d-%d, %d%\n",__slave->minRTT,__slave->maxRTT,currRTTcount*100/__count);	
 		if(currRTTcount*100/__count < 65)break;
 	}
 
 }
 
 //###########################################################################################################################
+
 
 int8_t getoffset(struct timeval *__master, struct timeval *__slave, struct timeval *__offset,uint16_t *__rtt){	
     __offset->tv_sec = __master->tv_sec - __slave->tv_sec;
@@ -187,7 +185,7 @@ int8_t getoffset(struct timeval *__master, struct timeval *__slave, struct timev
 
 //###########################################################################################################################
 
-int8_t getOffsetFromColun(struct Coluns *__colun, uint64_t *__sec, struct timeval *__offset){
+int8_t getOffsetOfServer(struct slave_t *__slave, uint64_t *__sec, struct timeval *__offset){
 	uint32_t		    total_offset[2], min[2], max[2], i, minN,maxN, totalN;
 	uint8_t			    count_offset[2], type, countN;
 	struct timeval		tp1,tp2,tv_offset;
@@ -201,38 +199,39 @@ int8_t getOffsetFromColun(struct Coluns *__colun, uint64_t *__sec, struct timeva
 	countN = count_offset[0] = count_offset[1] = 0;	
 	
     for(i = 1; i <= OFFSET_REQUEST_COUNT; i++){
-		memcpy(&request[1],&i,4);
+        txbuff[0] = OFFSET_REQ;
+		memcpy(&txbuff[1],&i,4);
 		gettimeofday(&tp1,NULL);
-		sendto(sock,request,5,0, (struct sockaddr*)&__colun->sock, sizeof(__colun->sock));
-		__colun->expected_p = i;
-		__colun->packet.status = NO;
+		sendto(sock,txbuff,5,0, (struct sockaddr*)&master, sizeof(master));
+		__slave->expected_p = i;
+		__slave->packet.received = FALSE;
 		gettimeofday(&tp2,NULL);
-		while(getmsdiff(&tp1.tv_usec,&tp2.tv_usec) < OFFSET_REQUEST_TIMEOUT){
-			if(__colun->packet.status == YES){		
-				if(i == __colun->packet.seq){
-					__colun->packet.status = NO;
+		while(getmsdiff(&tp1.tv_usec,&tp2.tv_usec) < REQUEST_TIMEOUT){
+			if(__slave->packet.received == TRUE){		
+				if(i == __slave->packet.seq){
+					__slave->packet.received = FALSE;
 					rtt =  getmsdiff(&tp1.tv_usec,&tp2.tv_usec);
-					if(rtt < __colun->maxRTT && rtt > __colun->minRTT){
-						type = getoffset(&tp1,&__colun->packet.time,&tv_offset,&rtt);
-						sec[type] = tv_offset.tv_sec;
-                        
+					
+                    if(rtt < __slave->maxRTT && rtt > __slave->minRTT){
+						type = getoffset(&tp1,&__slave->packet.time,&tv_offset,&rtt);
+						sec[type] = tv_offset.tv_sec;      
                         if(minN > (int)tv_offset.tv_usec)minN = tv_offset.tv_usec;
                         if(maxN < (int)tv_offset.tv_usec)maxN = tv_offset.tv_usec;
 
                         totalN += tv_offset.tv_usec;
 						countN++;
-                       //printf("%d : %p:  RTT=%d: master=%d.%d, slave=%d.%d, Offset=%d.%d\n",i,__colun,rtt,(int)tp1.tv_sec,(int)tp1.tv_usec,(int)__colun->packet.time.tv_sec,(int) __colun->packet.time.tv_usec,(int)tv_offset.tv_sec,(int)tv_offset.tv_usec);
+                       printf("%d:  RTT=%d: master=%d.%d, slave=%d.%d, Offset=%d.%d\n",i,rtt,(int)tp1.tv_sec,(int)tp1.tv_usec,(int)__slave->packet.time.tv_sec,(int) __slave->packet.time.tv_usec,(int)tv_offset.tv_sec,(int)tv_offset.tv_usec);
                     }
 					break;
 				}else{
-					__colun->packet.status = 0;
+					__slave->packet.received = 0;
 				}
 			}
 			gettimeofday(&tp2,NULL);
 		}
 	}
     if(countN*100/OFFSET_REQUEST_COUNT< 20)return -1;
-    if((maxN - minN) > (__colun->maxRTT - __colun->minRTT)*10) return -2;
+    if((maxN - minN) > (__slave->maxRTT - __slave->minRTT)*10) return -2;
 	*__sec = tp1.tv_sec;
 	__offset->tv_usec = (totalN - minN - maxN)/(countN -2);
 	__offset->tv_sec = tv_offset.tv_sec; 
@@ -240,7 +239,7 @@ int8_t getOffsetFromColun(struct Coluns *__colun, uint64_t *__sec, struct timeva
 
 }
 
-
+/*
 
 //###########################################################################################################################
 
