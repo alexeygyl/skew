@@ -5,37 +5,36 @@ void startServer(){
 	createUDPSocket(&sock, &args.port);
     source_len = sizeof(source);
     while(1){
-        bytes_r = recvfrom(sock,buff,BUFFSIZE,0,(struct sockaddr*)&source, &source_len);
-        switch(buff[0]){
+        memset(rxbuff,'\0',BUFFSIZE);
+        bytes_r = recvfrom(sock,rxbuff,BUFFSIZE,0,(struct sockaddr*)&source, &source_len);
+        switch(rxbuff[0]){
             case BROADCAST:
-                printf("\tBROADCAST....\n");
+                txbuff[0] = MASTER;
+                sendto(sock,txbuff,1,0,(struct sockaddr*)&source, sizeof(source));
             break;
             default:
-                printf("Unknow tag '%d\n'", buff[0]);
+                printf("Unknow tag '%d\n'", rxbuff[0]);
 		}
 
     }
 }
 
 void startClient(){
-    /*
-    struct Coluns *colun;
-	uint32_t	tmp;
-    pthread_create(&action_thrd,NULL,&action_thrd_func,NULL);
-	request[0] = OFFSET_REQUEST;
-	rttRequest[0] = RTT_REQUEST;
-	struct timeval	tv;
-    */
     printf("CLIENT is started \n");
 	createUDPSocket(&sock, &args.port);
     initBroadcastMessage(&sock);
 	pthread_create(&thrd_server_discover,NULL,&thrd_func_server_discover,NULL);
     source_len = sizeof(source);
 	while(1){
-        bytes_r = recvfrom(sock,buff,BUFFSIZE,0,(struct sockaddr*)&source, &source_len);
-		switch(buff[0]){
+        memset(rxbuff,'\0',BUFFSIZE);
+        bytes_r = recvfrom(sock,rxbuff,BUFFSIZE,0,(struct sockaddr*)&source, &source_len);
+		switch(rxbuff[0]){
             case BROADCAST:
-                printf("\tBROADCAST....\n");
+                //printf("\tBROADCAST....\n");
+            break;
+            case MASTER:
+                master = source;
+                printf("Master was discovered\n");
             break;
             /*
             case INIT_REQUEST:
@@ -81,7 +80,7 @@ void startClient(){
 			break;
             */
             default:
-                printf("Unknow tag '%d\n'", buff[0]);
+                printf("Unknow tag '%d\n'", rxbuff[0]);
 
 		}
 	}

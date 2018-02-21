@@ -6,7 +6,7 @@ void *thrd_func_server_discover(){
     unsigned char msg[1];
     msg[0] = BROADCAST;
     while(1){
-        //broadcastHeartBeat.sin_addr.s_addr = inet_addr("192.168.1.218");
+        broadcastServerDiscover.sin_addr.s_addr = inet_addr("192.168.1.218");
         sendto(sock,msg,1,0,(struct sockaddr*)&broadcastServerDiscover,sizeof(broadcastServerDiscover));
         sleep(BROADCAST_DELAY);
     }

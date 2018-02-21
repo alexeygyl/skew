@@ -31,7 +31,8 @@ enum mode{
 enum TAGS{
     OFFSET_REQ,
     OFFSET_RES,
-    BROADCAST
+    BROADCAST,
+    MASTER
 };
 
 #pragma pack(push, 1)
@@ -49,9 +50,9 @@ struct args{
 int32_t             sock;
 uint32_t            source_len;
 uint8_t			    bytes_r;
-struct sockaddr_in	source,broadcastServerDiscover;
+struct sockaddr_in	source,broadcastServerDiscover, master;
 
-unsigned char       buff[BUFFSIZE];
+unsigned char       rxbuff[BUFFSIZE],txbuff[BUFFSIZE];
 pthread_t           thrd_server_discover;
 
 /* This function reads arguments from command line */
