@@ -31,6 +31,8 @@ enum mode{
 enum TAGS{
     OFFSET_REQ,
     OFFSET_RES,
+    RTT_REQ,
+    RTT_RES,
     BROADCAST,
     MASTER
 };
@@ -49,11 +51,11 @@ struct args{
 
 int32_t             sock;
 uint32_t            source_len;
-uint8_t			    bytes_r;
+uint8_t			    bytes_r, isMasterDiscovered;
 struct sockaddr_in	source,broadcastServerDiscover, master;
 
 unsigned char       rxbuff[BUFFSIZE],txbuff[BUFFSIZE];
-pthread_t           thrd_server_discover;
+pthread_t           thrd_server_discover, thrd_offset;
 
 /* This function reads arguments from command line */
 void readAttr(int _argc, char ** _argv);
@@ -67,8 +69,9 @@ void createUDPSocket(int32_t *__sock, uint16_t  *__port);
 
 void initBroadcastMessage(int *__sock);
 
+/*Thread's functions*/
 void *thrd_func_server_discover();
-
+void *thrd_func_offset(void *__colun);
 /*
 #include <sys/stat.h>
 #include <signal.h>

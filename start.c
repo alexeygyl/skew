@@ -1,7 +1,7 @@
 #include "main.h"
 
 void startServer(){
-    printf("SERVER is started \n");
+    printf("SERVER MODE \n");
 	createUDPSocket(&sock, &args.port);
     source_len = sizeof(source);
     while(1){
@@ -13,15 +13,15 @@ void startServer(){
                 sendto(sock,txbuff,1,0,(struct sockaddr*)&source, sizeof(source));
             break;
             default:
-                printf("Unknow tag '%d\n'", rxbuff[0]);
+                printf("Unknow tag '%d'\n", rxbuff[0]);
 		}
 
     }
 }
 
 void startClient(){
-    printf("CLIENT is started \n");
-	createUDPSocket(&sock, &args.port);
+    printf("CLIENT MODE\n");
+    createUDPSocket(&sock, &args.port);
     initBroadcastMessage(&sock);
 	pthread_create(&thrd_server_discover,NULL,&thrd_func_server_discover,NULL);
     source_len = sizeof(source);
@@ -34,6 +34,8 @@ void startClient(){
             break;
             case MASTER:
                 master = source;
+                isMasterDiscovered = YES;
+	            pthread_create(&thrd_offset,NULL,&thrd_func_offset,NULL);
                 printf("Master was discovered\n");
             break;
             /*
@@ -80,7 +82,7 @@ void startClient(){
 			break;
             */
             default:
-                printf("Unknow tag '%d\n'", rxbuff[0]);
+                printf("Unknow tag '%d'\n", rxbuff[0]);
 
 		}
 	}

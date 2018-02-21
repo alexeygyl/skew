@@ -2,10 +2,10 @@
 
 
 void *thrd_func_server_discover(){
-    printf("\tServer discover thread has been started\n"); 
     unsigned char msg[1];
     msg[0] = BROADCAST;
-    while(1){
+	isMasterDiscovered = NO;
+    while(!isMasterDiscovered){
         broadcastServerDiscover.sin_addr.s_addr = inet_addr("192.168.1.218");
         sendto(sock,msg,1,0,(struct sockaddr*)&broadcastServerDiscover,sizeof(broadcastServerDiscover));
         sleep(BROADCAST_DELAY);
@@ -14,9 +14,10 @@ void *thrd_func_server_discover(){
 }
 
 
-/*
-void *thrd_func_for_offset(void *__colun){
-    
+
+void *thrd_func_offset(void *__colun){
+    printf("Thread offset eas started\n");
+    /*
 	struct Coluns	*colun  = (struct Coluns *)__colun;
 	uint16_t		RTTcount;	
 	int8_t			success_count, bestResult, offsetDir, running = 1, offset_fails,res;
@@ -113,10 +114,11 @@ close_colun:;
     //printTree(colunsHead);
     colunsCount--;
     printf("Colun '%p' is offline, close thread and realise all resoureces...\n",colun);
+*/
 
 }
 
-
+/*
 //######################################################################################################################################################
 void *action_thrd_func(){
     printf("\tAction thread has been started\n");
