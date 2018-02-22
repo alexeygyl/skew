@@ -30,21 +30,19 @@ uint16_t getRTT(struct slave_t *__slave){
 		while(getmsdiff(&start.tv_usec,&end.tv_usec) < REQUEST_TIMEOUT){
 			if(__slave->packet.received == TRUE){
 				__slave->packet.received = FALSE;
-				if(i == __slave->packet.seq){
-					rtt =  getmsdiff(&start.tv_usec,&end.tv_usec);
-					count++;
-                	//printf("%d:\tRTT %d: Time 1 %d.%d, Time 2 %d.%d\n",i,rtt, start.tv_sec,start.tv_usec,end.tv_sec,end.tv_usec);
+				rtt =  getmsdiff(&start.tv_usec,&end.tv_usec);
+				count++;
+                //printf("%d:\tRTT %d: Time 1 %d.%d, Time 2 %d.%d\n",i,rtt, start.tv_sec,start.tv_usec,end.tv_sec,end.tv_usec);
 					
-                    if(__slave->rtt !=NULL)currRtt = addNewRttToChain(currRtt,rtt);
-					else{
-					    __slave->rtt = addNewRttToChain(NULL,rtt);
-						currRtt = __slave->rtt;
-					}
+                if(__slave->rtt !=NULL)currRtt = addNewRttToChain(currRtt,rtt);
+				else{
+					__slave->rtt = addNewRttToChain(NULL,rtt);
+					currRtt = __slave->rtt;
+				}
 
-					pos = rtt/100;
-					if(pos<1000)res[pos]++;
-				    break;
-                }
+				pos = rtt/100;
+				if(pos<1000)res[pos]++;
+				break;
 
 			}
 			gettimeofday(&end,NULL);
@@ -208,30 +206,24 @@ int8_t getOffsetOfServer(struct slave_t *__slave, uint64_t *__sec, struct timeva
 		gettimeofday(&tp2,NULL);
 		while(getmsdiff(&tp1.tv_usec,&tp2.tv_usec) < REQUEST_TIMEOUT){
 			if(__slave->packet.received == TRUE){		
-				if(i == __slave->packet.seq){
-					__slave->packet.received = FALSE;
-					rtt =  getmsdiff(&tp1.tv_usec,&tp2.tv_usec);
-					
-                    if(rtt < __slave->maxRTT && rtt > __slave->minRTT){
-						type = getoffset(&tp1,&__slave->packet.time,&tv_offset,&rtt);
-						sec[type] = tv_offset.tv_sec;      
-                        if(minN > (int)tv_offset.tv_usec)minN = tv_offset.tv_usec;
-                        if(maxN < (int)tv_offset.tv_usec)maxN = tv_offset.tv_usec;
-
-                        totalN += tv_offset.tv_usec;
-						countN++;
-                       printf("%d:  RTT=%d: master=%d.%d, slave=%d.%d, Offset=%d.%d\n",i,rtt,(int)tp1.tv_sec,(int)tp1.tv_usec,(int)__slave->packet.time.tv_sec,(int) __slave->packet.time.tv_usec,(int)tv_offset.tv_sec,(int)tv_offset.tv_usec);
-                    }
-					break;
-				}else{
-					__slave->packet.received = 0;
-				}
+				__slave->packet.received = FALSE;
+				rtt =  getmsdiff(&tp1.tv_usec,&tp2.tv_usec);
+                if(rtt < __slave->maxRTT+1000 && rtt > __slave->minRTT){
+					type = getoffset(&tp1,&__slave->packet.time,&tv_offset,&rtt);
+					sec[type] = tv_offset.tv_sec;      
+                    if(minN > (int)tv_offset.tv_usec)minN = tv_offset.tv_usec;
+                    if(maxN < (int)tv_offset.tv_usec)maxN = tv_offset.tv_usec;
+                    totalN += tv_offset.tv_usec;
+                    countN++;
+                    //printf("%d:  RTT=%d: master=%d.%d, slave=%d.%d, Offset=%d.%d\n",i,rtt,(int)tp1.tv_sec,(int)tp1.tv_usec,(int)__slave->packet.time.tv_sec,(int) __slave->packet.time.tv_usec,(int)tv_offset.tv_sec,(int)tv_offset.tv_usec);
+                }
+				break;
 			}
 			gettimeofday(&tp2,NULL);
 		}
 	}
     if(countN*100/OFFSET_REQUEST_COUNT< 20)return -1;
-    if((maxN - minN) > (__slave->maxRTT - __slave->minRTT)*10) return -2;
+    //if((maxN - minN) > (__slave->maxRTT - __slave->minRTT)*10) return -2;
 	*__sec = tp1.tv_sec;
 	__offset->tv_usec = (totalN - minN - maxN)/(countN -2);
 	__offset->tv_sec = tv_offset.tv_sec; 
@@ -239,25 +231,10 @@ int8_t getOffsetOfServer(struct slave_t *__slave, uint64_t *__sec, struct timeva
 
 }
 
+
+
+//###########################################################################################################################
 /*
-
-//###########################################################################################################################
-
-float getSkewDelta(struct Coluns *__colun, float *__skew){
-	static float	total = 0.0, count = 0.0;
-    float           skew;
-	if(colunsCount <= 1)return 0.0;
-    if(__colun != NULL){
-		total+=__colun->actualSkew;
-        count++;
-        return getSkewDelta(__colun->next,__skew);
-	}
-    skew =  *__skew - total/count;	
-    count = total = 0.0;
-	return skew;
-}
-
-//###########################################################################################################################
 float getSkewLRDelta(struct  Coluns *__colun, float *__skew){
 	static float	total = 0.0, count = 0.0;
     float           skew;
@@ -273,7 +250,7 @@ float getSkewLRDelta(struct  Coluns *__colun, float *__skew){
     count = total = 0.0;
 	return skew;	
 }
-
+*/
 //###########################################################################################################################
 
 float calculateSkewLR(struct SkewData *__skew){
@@ -318,55 +295,16 @@ float calculateSkewLR(struct SkewData *__skew){
 
 }
 
-//###########################################################################################################################
-float calculateSkewTime(struct SkewData *__skew){
-	float			tmp;
-	static uint8_t		count;
-	static float		min,max, total;
-	static uint64_t		head_time;
-	static struct timeval	head_offset;
-	if(head_time == 0){
-		head_time = __skew->sec_master;
-		head_offset = __skew->offset;
-		count = 1;
-		min = 1000000;
-		max = -1000000;
-		total = 0;
-		if(__skew->next!=NULL)return calculateSkewTime(__skew->next);
-		return 0;
-	}
-	if(head_offset.tv_sec == __skew->offset.tv_sec){
-		tmp = (float)(head_offset.tv_usec - __skew->offset.tv_usec) / (float)(__skew->sec_master - head_time );
-	}
-	else {
-		if(head_offset.tv_usec < __skew->offset.tv_usec){
-			tmp = (float)(1000000 + head_offset.tv_usec - __skew->offset.tv_usec) / (float)(__skew->sec_master - head_time );
-		}
-		else{
-			tmp = (float)(head_offset.tv_usec - __skew->offset.tv_usec - 1000000) / (float)(__skew->sec_master - head_time );
-		}
-	}
-	min = min > tmp ? tmp : min;
-	max = max < tmp ? tmp : max;
-	total += tmp;
-	if(__skew->next != NULL){
-		count++;
-		return calculateSkewTime(__skew->next);
-	}	
-	head_time = 0;
-	if(count>5) return (total - min - max)/(float)(count - 2);
-	else return total/(float)count;
-}
 
 //###########################################################################################################################
-
+/*
 struct timeval getLastOffset(struct SkewData *__skew){
 	if(__skew->next != NULL){
 		return getLastOffset(__skew->next);
 	}
 	else return __skew->offset;
 }
-
+*/
 //###########################################################################################################################
 
 struct SkewData *addNewNode(struct SkewData *__current, uint64_t *__sec, struct timeval *__offset){
@@ -394,19 +332,7 @@ struct SkewData *deleteFirstNode(struct SkewData *__head){
 }
 
 //###########################################################################################################################
-//###########################################################################################################################
-
-int8_t isReadyToSendSkew(struct Coluns *__colun){
-        if(colunsCount == 0)return NO;
-        if(__colun !=NULL){
-            if(__colun->newSkew == 0)return NO;
-            return isReadyToSendSkew(__colun->next);
-        }
-        return YES;
-}
-
-//###########################################################################################################################
-
+/*
 void timer(struct timeval *__time){
 		struct timeval tp;
 		gettimeofday(&tp,NULL);

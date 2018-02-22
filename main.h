@@ -115,6 +115,9 @@ void printChain(struct rtt_chain *__rrt);
 void deleteRttChain(struct rtt_chain *__rtt);
 int8_t getOffsetOfServer(struct slave_t *__slave, uint64_t *__sec, struct timeval *__offset);
 
+float calculateSkewLR(struct SkewData *__skew);
+struct SkewData *addNewNode(struct SkewData *__current, uint64_t *__sec, struct timeval *__offset);
+struct SkewData *deleteFirstNode(struct SkewData *__head);
 
 /*
 #include <sys/stat.h>
@@ -129,22 +132,8 @@ int8_t getOffsetOfServer(struct slave_t *__slave, uint64_t *__sec, struct timeva
 
 #define CLOCK_SYNC_COUNT 10
 
-
-
-
-
-//---------------------------FUNCTIONS--------------------------------------------------
 void timer(struct timeval *__time);
 void changeTime(struct timeval *__time, int32_t sec, int32_t usec);
-
-//--------------------OFFSET AND SKEW FUNCTIONS-----------------------------------------
-struct timeval getLastOffset(struct SkewData *__skew);
-//float getSkewDelta(struct Coluns *__colun, float *__skew);
 float getSkewLRDelta(struct Coluns *__colun, float *__skew);
-void printSkewMead(struct SkewData *__skew);
-float calculateSkewTime(struct SkewData *__skew);
-float calculateSkewLR(struct SkewData *__skew);
-struct SkewData *addNewNode(struct SkewData *__current, uint64_t *__sec, struct timeval *__offset);
-struct SkewData *deleteFirstNode(struct SkewData *__head);
 */
 

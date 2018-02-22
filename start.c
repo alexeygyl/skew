@@ -18,7 +18,6 @@ void startServer(){
                 gettimeofday(&tstamp,NULL);
                 memcpy(&rxbuff[5],&tstamp,8);
                 sendto(sock,rxbuff,bytes_r + 8,0,(struct sockaddr*)&source, sizeof(source));
-                printf("OFFSET_REQ\n");
             break;
             case RTT_REQ:
                 rxbuff[0] = RTT_RES;
@@ -39,6 +38,8 @@ void startClient(){
     source_len = sizeof(source);
     struct slave_t  slave;
     slave.rtt = NULL;
+    slave.skew = NULL;
+    slave.actualSkew = 0;
 	while(1){
         memset(rxbuff,'\0',BUFFSIZE);
         bytes_r = recvfrom(sock,rxbuff,BUFFSIZE,0,(struct sockaddr*)&source, &source_len);
@@ -52,17 +53,16 @@ void startClient(){
 	            pthread_create(&thrd_offset,NULL,&thrd_func_offset,&slave);
             break;
             case OFFSET_RES:
-                printf("OFFSET_RES\n");
 				memcpy(&slave.packet.seq, &rxbuff[1],4);
 				if(slave.packet.seq != slave.expected_p)continue;
 				memcpy(&slave.packet.time.tv_sec,&rxbuff[5],4);
 				memcpy(&slave.packet.time.tv_usec,&rxbuff[9],4);
+                //printf("OFFSET_RES %d  = %d, %d.%d\n", slave.packet.seq, slave.expected_p, slave.packet.time.tv_sec, slave.packet.time.tv_usec);
 				slave.packet.received = TRUE;
 			break;
 			case RTT_RES:
 				memcpy(&slave.packet.seq, &rxbuff[1],4);
 				if(slave.packet.seq != slave.expected_p)continue;
-                //printf("RTT_RES %d  = %d\n", slave.packet.seq, slave.expected_p);
 				slave.packet.received = TRUE;
 			break;
             default:
