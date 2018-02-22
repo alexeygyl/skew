@@ -215,7 +215,7 @@ int8_t getOffsetOfServer(struct slave_t *__slave, uint64_t *__sec, struct timeva
                     if(maxN < (int)tv_offset.tv_usec)maxN = tv_offset.tv_usec;
                     totalN += tv_offset.tv_usec;
                     countN++;
-                    //printf("%d:  RTT=%d: master=%d.%d, slave=%d.%d, Offset=%d.%d\n",i,rtt,(int)tp1.tv_sec,(int)tp1.tv_usec,(int)__slave->packet.time.tv_sec,(int) __slave->packet.time.tv_usec,(int)tv_offset.tv_sec,(int)tv_offset.tv_usec);
+                    printf("%d:  RTT=%d: master=%d.%d, slave=%d.%d, Offset=%d.%d\n",i,rtt,(int)tp1.tv_sec,(int)tp1.tv_usec,(int)__slave->packet.time.tv_sec,(int) __slave->packet.time.tv_usec,(int)tv_offset.tv_sec,(int)tv_offset.tv_usec);
                 }
 				break;
 			}
