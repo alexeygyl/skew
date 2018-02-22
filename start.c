@@ -18,7 +18,7 @@ void startServer(){
                 gettimeofday(&tstamp,NULL);
                 memcpy(&rxbuff[5],&tstamp.tv_sec,4);
                 memcpy(&rxbuff[9],&tstamp.tv_usec,4);
-                //printf("Size %d,  %d.%d\n",sizeof(struct timeval), tstamp.tv_sec, tstamp.tv_usec);
+                printf("Size %d,  %d.%d\n",sizeof(struct timeval), tstamp.tv_sec, tstamp.tv_usec);
                 sendto(sock,rxbuff,bytes_r + 8,0,(struct sockaddr*)&source, sizeof(source));
             break;
             case RTT_REQ:
